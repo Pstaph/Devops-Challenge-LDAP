@@ -1,0 +1,129 @@
+sudo yum -y install openldap-servers openldap-clients
+sudo cp /usr/share/openldap-servers/DB_CONFIG.example /var/lib/ldap/DB_CONFIG
+sudo chown ldap. /var/lib/ldap/DB_CONFIG
+sudo systemctl start slapd
+sudo systemctl enable slapd
+
+slappasswd
+#Password: 1
+#Password: 1
+#Output: {SSHA}2TlD6RsDWyb7cvUYe/X0/pFd9+qmOYMv
+
+sudo vi chrootpw.ldif
+
+#------- Put this in the file -----#
+# specify the password generated above for "olcRootPW" section
+dn: olcDatabase={0}config,cn=config
+changetype: modify
+add: olcRootPW
+olcRootPW: {SSHA}xxxxxxxxxxxxxxxxxxxxxxxx
+#------- End of the file -----#
+
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f chrootpw.ldif
+
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/cosine.ldif
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/nis.ldif
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/openldap/schema/inetorgperson.ldif
+
+sudo vi chdomain.ldif
+
+#------- Put this in the file -----#
+# replace to your own domain name for "dc=***,dc=***" section
+# specify the password generated above for "olcRootPW" section
+dn: olcDatabase={1}monitor,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth"
+  read by dn.base="cn=Manager,dc=srv,dc=world" read by * none
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcSuffix
+olcSuffix: dc=srv,dc=world
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+replace: olcRootDN
+olcRootDN: cn=Manager,dc=srv,dc=world
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+add: olcRootPW
+olcRootPW: {SSHA}xxxxxxxxxxxxxxxxxxxxxxxx
+
+dn: olcDatabase={2}hdb,cn=config
+changetype: modify
+add: olcAccess
+olcAccess: {0}to attrs=userPassword,shadowLastChange by
+  dn="cn=Manager,dc=srv,dc=world" write by anonymous auth by self write by * none
+olcAccess: {1}to dn.base="" by * read
+olcAccess: {2}to * by dn="cn=Manager,dc=srv,dc=world" write by * read
+#------- End of the file -----#
+
+sudo ldapmodify -Y EXTERNAL -H ldapi:/// -f chdomain.ldif
+
+sudo vi basedomain.ldif
+
+#------- Put this in the file -----#
+# replace to your own domain name for "dc=***,dc=***" section
+dn: dc=srv,dc=world
+objectClass: top
+objectClass: dcObject
+objectclass: organization
+o: Server World
+dc: Srv
+
+dn: cn=Manager,dc=srv,dc=world
+objectClass: organizationalRole
+cn: Manager
+description: Directory Manager
+
+dn: ou=People,dc=srv,dc=world
+objectClass: organizationalUnit
+ou: People
+
+dn: ou=Group,dc=srv,dc=world
+objectClass: organizationalUnit
+ou: Group
+#------- End of the file -----#
+
+sudo ldapadd -x -D cn=Manager,dc=srv,dc=world -W -f basedomain.ldif
+#Password: 1
+#Password: 1
+
+sudo vi ldapuser.sh
+
+#------- Put this in the file -----#
+# create new
+# replace to your own domain name for "dc=***,dc=***" section
+dn: uid=cent,ou=People,dc=srv,dc=world
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: Cent
+sn: Linux
+userPassword: {SSHA}xxxxxxxxxxxxxxxxx
+loginShell: /bin/bash
+uidNumber: 1000
+gidNumber: 1000
+homeDirectory: /home/cent
+
+dn: cn=cent,ou=Group,dc=srv,dc=world
+objectClass: posixGroup
+cn: Cent
+gidNumber: 1000
+memberUid: cent
+#------- End of the file -----#
+
+ldapadd -x -D cn=Manager,dc=srv,dc=world -W -f ldapuser.ldif
+#Password: 1
+#Password: 1
+
+yum -y install openldap-clients nss-pam-ldapd
+
+authconfig --enableldap \
+--enableldapauth \
+--ldapserver=dlp.srv.world \
+--ldapbasedn="dc=srv,dc=world" \
+--enablemkhomedir \
+--update
