@@ -11,3 +11,5 @@ Keep notes. Afterward, we will do a WebEx to discuss how you accomplished the ta
 - Config files are in the LDAP folder
       - This includes a txt file showing what commands I ran
       - Also includes all the files made for the config of LDAP
+
+- AI Convos are included in the provided PDF files
