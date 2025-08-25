@@ -1,0 +1,19 @@
+# create new
+# replace to your own domain name for "dc=***,dc=***" section
+dn: uid=cent,ou=People,dc=srv,dc=world
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: Cent
+sn: Linux
+userPassword: {SSHA}2TlD6RsDWyb7cvUYe/X0/pFd9+qmOYMv
+loginShell: /bin/bash
+uidNumber: 1000
+gidNumber: 1000
+homeDirectory: /home/cent
+
+dn: cn=cent,ou=Group,dc=srv,dc=world
+objectClass: posixGroup
+cn: Cent
+gidNumber: 1000
+memberUid: cent
