@@ -74,7 +74,7 @@ sudo systemctl start  httpd.service
 # Based on your command log; made non-interactive & idempotent.
 
 
-#--- CHATGPT GENERATED CONTENT BELOW BASED ON THE CONTEXT OF Commands_ran.txt "
+
 
 ### --- Config you can tweak ---
 BASE_DC1="srv"
